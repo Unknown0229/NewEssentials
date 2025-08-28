@@ -1,4 +1,4 @@
-# NewEssentials
+# NewEssentials With Fixed /vehicle And /v
 
 The new essential plugin for Unturned. This project aims to be a replacement for [uEssentials](https://github.com/uessentials/uessentials) built on OpenMod.
 
