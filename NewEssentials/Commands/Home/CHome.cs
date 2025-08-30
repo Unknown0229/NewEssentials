@@ -1,4 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 using NewEssentials.API.Players;
@@ -13,6 +13,7 @@ using OpenMod.Unturned.Commands;
 using OpenMod.Unturned.Users;
 using System;
 using System.Collections.Generic;
+using InteractableBed = SDG.Unturned.InteractableBed;
 
 namespace NewEssentials.Commands.Home
 {
@@ -72,27 +73,59 @@ namespace NewEssentials.Commands.Home
                 }
             }
 
-            // Here we will delay the teleportation whether it be to a bed or home
-            int delay = m_Configuration.GetValue<int>("teleportation:delay");
-            bool cancelOnMove = m_Configuration.GetValue<bool>("teleportation:cancelOnMove");
-            bool cancelOnDamage = m_Configuration.GetValue<bool>("teleportation:cancelOnDamage");
-
-            await uPlayer.PrintMessageAsync(m_StringLocalizer["home:success", new { Home = homeName, Time = delay }]);
-
-            bool success = await m_TeleportService.TeleportAsync(uPlayer, new TeleportOptions(m_PluginAccessor.Instance, delay, cancelOnMove, cancelOnDamage));
-
-            if (!success)
-                throw new UserFriendlyException(m_StringLocalizer["teleport:canceled"]);
-
-            // Bed-specific teleportation
+            // For bed teleportation, check if bed exists first, then show countdown
             if (bed)
             {
+                // Search for beds in the world that belong to this player
+                bool hasBed = false;
+                try
+                {
+                    var beds = UnityEngine.Object.FindObjectsOfType<InteractableBed>();
+                    var playerSteamID = uPlayer.Player.Player.channel.owner.playerID.steamID;
+                    
+                    foreach (var bedObj in beds)
+                    {
+                        if (bedObj.owner == playerSteamID)
+                        {
+                            hasBed = true;
+                            break;
+                        }
+                    }
+                }
+                catch
+                {
+                    // If search fails, assume bed exists and let teleportToBed handle it
+                    hasBed = true;
+                }
+
+                if (!hasBed)
+                    throw new UserFriendlyException(m_StringLocalizer["home:no_bed"]);
+
+                int delay = m_Configuration.GetValue<int>("teleportation:delay");
+                await uPlayer.PrintMessageAsync(m_StringLocalizer["home:success", new { Home = "your bed", Time = delay }]);
+                
+                // Wait for the full delay from configuration
+                await UniTask.Delay(delay * 1000); // Convert seconds to milliseconds
+                
                 await UniTask.SwitchToMainThread();
                 if (!uPlayer.Player.Player.teleportToBed())
                     throw new UserFriendlyException(m_StringLocalizer["home:no_bed"]);
-
+                
+                await uPlayer.PrintMessageAsync(m_StringLocalizer["home:set", new { Home = "Bed teleportation" }]);
                 return;
             }
+
+            // Home teleportation - apply full delay and teleportation service
+            int homeDelay = m_Configuration.GetValue<int>("teleportation:delay");
+            bool cancelOnMove = m_Configuration.GetValue<bool>("teleportation:cancelOnMove");
+            bool cancelOnDamage = m_Configuration.GetValue<bool>("teleportation:cancelOnDamage");
+
+            await uPlayer.PrintMessageAsync(m_StringLocalizer["home:success", new { Home = homeName, Time = homeDelay }]);
+
+            bool success = await m_TeleportService.TeleportAsync(uPlayer, new TeleportOptions(m_PluginAccessor.Instance, homeDelay, cancelOnMove, cancelOnDamage));
+
+            if (!success)
+                throw new UserFriendlyException(m_StringLocalizer["teleport:canceled"]);
 
             if (!await uPlayer.Player.Player.TeleportToLocationAsync(home.ToUnityVector3()))
                 throw new UserFriendlyException(m_StringLocalizer["home:failure", new { Home = homeName }]);
