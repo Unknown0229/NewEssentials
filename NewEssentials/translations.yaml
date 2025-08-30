@@ -48,6 +48,8 @@ home:
   list: "{User}'s homes include: {Homes}."
   delete: "Deleted home: {Home}."
   too_many: "You are not allowed to set another home."
+  bed_success: "Successfully teleported to your bed."
+  bed_countdown: "Teleporting to your bed in {Time} seconds. Don't move!"
 back:
   none: "You have no known death location."
   success: "Teleported to last death location."
