@@ -2,10 +2,14 @@
 using Microsoft.Extensions.Localization;
 using OpenMod.API.Commands;
 using OpenMod.Core.Commands;
+using OpenMod.Core.Permissions;
 using OpenMod.Unturned.Commands;
 using OpenMod.Unturned.Users;
 using SDG.Unturned;
 using System;
+using NewEssentials.Players;
+using NewEssentials.API.Players;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace NewEssentials.Commands
 {
@@ -124,6 +128,61 @@ namespace NewEssentials.Commands
             vehicle.fuel = vehicle.asset.fuel;
             VehicleManager.sendVehicleFuel(vehicle, vehicle.fuel);
             return true;
+        }
+    }
+
+    [Command("autorefuel")]
+    [CommandDescription("Enable or disable automatic refueling for your vehicle (Admin Only)")]
+    [CommandSyntax("[on|off]")]
+    [CommandActor(typeof(UnturnedUser))]
+    [RegisterCommandPermission("autorefuel", Description = "Allows use of auto-refuel system")]
+    public class CAutoRefuel : UnturnedCommand
+    {
+        private readonly IStringLocalizer m_StringLocalizer;
+
+        public CAutoRefuel(IStringLocalizer stringLocalizer, IServiceProvider serviceProvider) : base(serviceProvider)
+        {
+            m_StringLocalizer = stringLocalizer;
+        }
+
+        protected override async UniTask OnExecuteAsync()
+        {
+            UnturnedUser uPlayer = (UnturnedUser)Context.Actor;
+            var steamID = uPlayer.SteamId;
+
+            // Get the auto-refuel service from the static manager
+            var autoRefuelService = AutoRefuelServiceManager.GetService();
+            if (autoRefuelService == null)
+            {
+                await PrintAsync("Auto-refuel service is not available. Please restart the server.");
+                return;
+            }
+
+            if (Context.Parameters.Length == 0)
+            {
+                // Show current status
+                bool isEnabled = autoRefuelService.IsEnabledForPlayer(steamID);
+                string status = isEnabled ? "enabled" : "disabled";
+                await PrintAsync($"Auto-refuel is currently {status}. Use '/autorefuel on' to enable or '/autorefuel off' to disable.");
+                return;
+            }
+
+            string action = Context.Parameters[0].ToLower();
+            
+            if (action == "on" || action == "enable")
+            {
+                autoRefuelService.EnableForPlayer(steamID);
+                await PrintAsync("Auto-refuel enabled! Your vehicle will now be automatically refueled when fuel drops below 80%.");
+            }
+            else if (action == "off" || action == "disable")
+            {
+                autoRefuelService.DisableForPlayer(steamID);
+                await PrintAsync("Auto-refuel disabled. Your vehicle will no longer be automatically refueled.");
+            }
+            else
+            {
+                throw new CommandWrongUsageException(Context);
+            }
         }
     }
 }
