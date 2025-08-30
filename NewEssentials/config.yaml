@@ -26,6 +26,28 @@ teleportation:
   delay: 5
   cancelOnMove: true
   cancelOnDamage: true
+autorefuel:
+  # Fuel percentage threshold to trigger auto-refuel (default: 80%)
+  threshold: 80
+  # Check interval in milliseconds (default: 5000 = 5 seconds)
+  checkInterval: 5000
+autorepair:
+  # Health percentage threshold to trigger auto-repair (default: 90%)
+  threshold: 90
+  # Check interval in milliseconds (default: 5000 = 5 seconds)
+  checkInterval: 5000
+autorepairitems:
+  # Quality percentage threshold to trigger auto-repair (default: 90%)
+  threshold: 90
+  # Check interval in milliseconds (default: 5000 = 5 seconds)
+  checkInterval: 5000
+autoammo:
+  # Ammo amount threshold to trigger auto-refill (default: 80%)
+  threshold: 80  # Will refill magazines when below 80% of capacity
+  # Gun magazine threshold to trigger auto-refill (default: 80% - more aggressive)
+  gunThreshold: 80
+  # Check interval in milliseconds (default: 2000 = 2 seconds)
+  checkInterval: 1000  # Check every 1 second instead of 2 seconds for faster response
 connections:
   joinMessages: true
   leaveMessages: true
